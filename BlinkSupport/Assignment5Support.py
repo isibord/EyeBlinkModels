@@ -1,7 +1,21 @@
 import os
 import random
-import numpy as np
-import math
+
+def TrainTestSplit(x, y, percentTest = .25):
+    if(len(x) != len(y)):
+        raise UserWarning("Attempting to split into training and testing set.\n\tArrays do not have the same size. Check your work and try again.")
+
+    numTest = round(len(x) * percentTest)
+
+    if(numTest == 0 or numTest > len(y)):
+        raise UserWarning("Attempting to split into training and testing set.\n\tSome problem with the percentTest or data set size. Check your work and try again.")
+
+    xTest = x[:numTest]
+    xTrain = x[numTest:]
+    yTest = y[:numTest]
+    yTrain = y[numTest:]
+
+    return (xTrain, yTrain, xTest, yTest)
 
 def LoadRawData(kDataPath, includeLeftEye = True, includeRightEye = True, shuffle=True):
     xRaw = []
@@ -51,21 +65,6 @@ def LoadRawData(kDataPath, includeLeftEye = True, includeRightEye = True, shuffl
 
     return (xRaw, yRaw)
 
-def TrainTestSplit(x, y, percentTest = .25):
-    if(len(x) != len(y)):
-        raise UserWarning("Attempting to split into training and testing set.\n\tArrays do not have the same size. Check your work and try again.")
-
-    numTest = round(len(x) * percentTest)
-
-    if(numTest == 0 or numTest > len(y)):
-        raise UserWarning("Attempting to split into training and testing set.\n\tSome problem with the percentTest or data set size. Check your work and try again.")
-
-    xTest = x[:numTest]
-    xTrain = x[numTest:]
-    yTest = y[:numTest]
-    yTrain = y[numTest:]
-
-    return (xTrain, yTrain, xTest, yTest)
 
 from PIL import Image
 
@@ -92,60 +91,11 @@ def Convolution3x3(image, filter):
                     imageX = x + (filterX - 1)
                     imageY = y + (filterY - 1)
 
-                    #value += pixels[imageX, imageY] * filter[filterX][filterY]
-                    value += (pixels[imageX, imageY]/255.0) * filter[filterX][filterY]
+                    value += pixels[imageX, imageY] * filter[filterX][filterY]
 
             answer[x][y] = value
 
     return answer
-
-def CalculateHistogramFeatures(yEdges, xSize, ySize, numPixels):
-    features = []
-    HistY02 = 0
-    HistY24 = 0
-    HistY46 = 0
-    HistY68 = 0
-    HistY81 = 0
-
-    for x in range(xSize):
-        for y in range(ySize):
-            if abs(yEdges[x][y]) <= 0.2:
-                HistY02 += 1
-            elif abs(yEdges[x][y]) <= 0.4:
-                HistY24 +=1
-            elif abs(yEdges[x][y]) <= 0.6:
-                HistY46 += 1
-            elif abs(yEdges[x][y]) <= 0.8:
-                HistY68 += 1
-            else:
-                HistY81 += 1
-            
-    features.append(HistY02 / numPixels)
-    features.append(HistY24 / numPixels)
-    features.append(HistY46 / numPixels)
-    features.append(HistY68 / numPixels)
-    features.append(HistY81 / numPixels)
-
-    return features
-
-def CalculateGradientFeatures(yEdges):
-    features = []
-    #Split into MXN images
-    im =  np.asarray(yEdges)
-    M = 8
-    N = 8
-    tiles = [im[x:x+M,y:y+N] for x in range(0,im.shape[0],M) for y in range(0,im.shape[1],N)]
-    for tile in tiles:
-        max = tile.max()
-        min = tile.min()
-        sumGradient = sum([sum([abs(value) for value in row]) for row in tile])
-        count = sum([len(row) for row in tile])
-        features.append(sumGradient / count)
-        features.append(max)
-        features.append(min)
-
-    return features
-
 
 def Featurize(xTrainRaw, xTestRaw, includeGradients=True, includeRawPixels=False, includeIntensities=False):
     # featurize the training data, may want to do multiple passes to count things.
@@ -163,8 +113,7 @@ def Featurize(xTrainRaw, xTestRaw, includeGradients=True, includeRawPixels=False
 
         if includeGradients:
             # average Y gradient strength
-            yEdges = Convolution3x3(image, [[1, 2, 1],[0,0,0],[-1,-2,-1]])
-                                 
+            yEdges = Convolution3x3(image, [[1, 0, -1],[2,0,-2],[1,0,-1]])
             sumGradient = sum([sum([abs(value) for value in row]) for row in yEdges])
             count = sum([len(row) for row in yEdges])
 
@@ -175,17 +124,6 @@ def Featurize(xTrainRaw, xTestRaw, includeGradients=True, includeRawPixels=False
             count = sum([len(row[8:16]) for row in yEdges])
 
             features.append(sumGradient / count)
-            
-            ##ASSIGNMENT ADD##
-
-            #xEdges = Convolution3x3(image, [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]])
-
-            #features.extend(CalculateHistogramFeatures(yEdges, xSize, ySize, numPixels))
-            #features.extend(CalculateGradientFeatures(yEdges))
-            
-            #features.extend(CalculateHistogramFeatures(xEdges, xSize, ySize, numPixels))
-            #features.extend(CalculateGradientFeatures(xEdges))
-            
 
         if includeRawPixels:
             for x in range(xSize):
@@ -215,8 +153,7 @@ def Featurize(xTrainRaw, xTestRaw, includeGradients=True, includeRawPixels=False
 
         if includeGradients:
             # average Y gradient strength
-            yEdges = Convolution3x3(image, [[1, 2, 1],[0,0,0],[-1,-2,-1]])
-            
+            yEdges = Convolution3x3(image, [[1, 0, -1],[2,0,-2],[1,0,-1]])
             sumGradient = sum([sum([abs(value) for value in row]) for row in yEdges])
             count = sum([len(row) for row in yEdges])
 
@@ -227,16 +164,6 @@ def Featurize(xTrainRaw, xTestRaw, includeGradients=True, includeRawPixels=False
             count = sum([len(row[8:16]) for row in yEdges])
 
             features.append(sumGradient / count)
-
-            ##ASSIGNMENT ADD##
-
-            #xEdges = Convolution3x3(image, [[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]])
-
-            #features.extend(CalculateHistogramFeatures(yEdges, xSize, ySize, numPixels))
-            #features.extend(CalculateGradientFeatures(yEdges))
-            
-            #features.extend(CalculateHistogramFeatures(xEdges, xSize, ySize, numPixels))
-            #features.extend(CalculateGradientFeatures(xEdges))
 
         if includeRawPixels:
             for x in range(xSize):
@@ -275,31 +202,3 @@ def VisualizeWeights(weightArray, outputPath):
             pixels[x,y] = int(abs(weightArray[(x*size) + y]) * 255)
 
     image.save(outputPath)
-
-def GetAllDataExceptFold(xTrain, yTrain, i, numFolds):
-    xTrainSplit = partition(xTrain, numFolds)
-    yTrainSplit = partition(yTrain, numFolds)
-
-    xTrainExceptFold = []
-    yTrainExceptFold = []
-    for num in range(numFolds):
-        if num != i:
-            xTrainExceptFold.extend(xTrainSplit[num])
-            yTrainExceptFold.extend(yTrainSplit[num])
-   
-    return (xTrainExceptFold, yTrainExceptFold)
-
-
-def GetDataInFold(xTrain, yTrain, i, numFolds):
-    return (partition(xTrain, numFolds)[i], partition(yTrain, numFolds)[i])
-
-
-def partition(seq, chunks):
-    """Splits the sequence into equal sized chunks and them as a list"""
-    result = []
-    for i in range(chunks):
-        chunk = []
-        for element in seq[i:len(seq):chunks]:
-            chunk.append(element)
-        result.append(chunk)
-    return result
