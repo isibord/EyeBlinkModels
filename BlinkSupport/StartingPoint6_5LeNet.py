@@ -1,4 +1,10 @@
 ## Some of this references my answers to previous assignments.
+##  Replace my references with references to your answers to those assignments.
+
+## IMPORTANT NOTE !!
+## Remember to install the Pillow library (which is required to execute 'import PIL')
+## Remember to install Pytorch: https://pytorch.org/get-started/locally/ (if you want GPU you need to figure out CUDA...)
+
 
 import Assignment5Support
 import EvaluationsStub
@@ -19,27 +25,33 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torch 
 
-(foldTrainX, foldTrainY)  = Assignment5Support.GetAllDataExceptFold(xTrainRaw, yTrainRaw, 2, 5)
-(foldValidationX, foldValidationY) = Assignment5Support.GetDataInFold(xTrainRaw, yTrainRaw, 2, 5)
 
 # Load the images and then convert them into tensors (no normalization)
-xTrainImages = [ Image.open(path) for path in foldTrainX ]
+xTrainImages = [ Image.open(path) for path in xTrainRaw ]
+
+
 xTrainFlip = [ transforms.ToTensor()(image.transpose(Image.FLIP_LEFT_RIGHT)) for image in xTrainImages ]
 xTrainReg = [ transforms.ToTensor()(image) for image in xTrainImages ]
 xTrainReg.extend(xTrainFlip)
+
+
+xTrainFlip = [ transforms.ToTensor()(image.transpose(Image.FLIP_TOP_BOTTOM)) for image in xTrainImages ]
+xTrainReg.extend(xTrainFlip)
+
+
 xTrain = torch.stack(xTrainReg)
 
-xValidationImages = [ Image.open(path) for path in foldValidationX ]
-xValidation = torch.stack([ transforms.ToTensor()(image) for image in xValidationImages ])
 
 xTestImages = [ Image.open(path) for path in xTestRaw ]
 xTest = torch.stack([ transforms.ToTensor()(image) for image in xTestImages ])
 
-foldTrainY.extend(foldTrainY)
-yTrain = torch.Tensor([ [ yValue ] for yValue in foldTrainY ])
-yValidation = torch.Tensor([ [ yValue ] for yValue in foldValidationY ])
-yTest = torch.Tensor([ [ yValue ] for yValue in yTestRaw ])
+yTrainRawCopy = yTrainRaw.copy()
+yTrainRaw.extend(yTrainRawCopy)
+yTrainRaw.extend(yTrainRawCopy)
+yTrain = torch.Tensor([ [ yValue ] for yValue in yTrainRaw ])
 
+
+yTest = torch.Tensor([ [ yValue ] for yValue in yTestRaw ])
 
 ######
 ######
@@ -51,8 +63,8 @@ import SimpleBlinkNeuralNetworkLeNetMod
 #     the optimization method (Stochastic Gradient Descent) and the step size
 model = SimpleBlinkNeuralNetworkLeNetMod.SimpleBlinkNeuralNetworkLeNet()
 lossFunction = torch.nn.MSELoss(reduction='sum')
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.95)
-#optimizer = torch.optim.ASGD(model.parameters(), lr=1e-4) #0.86
+#optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.95)
+optimizer = torch.optim.ASGD(model.parameters(), lr=1e-4) #0.86
 #optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-2) #0.89 accuracy
 #optimizer = torch.optim.Rprop(model.parameters()) #0.932
 
@@ -73,17 +85,10 @@ for i in range(800):
     # Do a weight update step
     optimizer.step()
 
-    
-yValidationPred = model(xValidation)
-
-yPred = [ 1 if pred > 0.5 else 0 for pred in yValidationPred ]
-
-print("Accuracy on holdout set:", EvaluationsStub.Accuracy(foldValidationY, yPred))
-
-
 yTestPredicted = model(xTest)
 
 yPred = [ 1 if pred > 0.5 else 0 for pred in yTestPredicted ]
 
-print("Accuracy on Test Set:", EvaluationsStub.Accuracy(yTest, yPred))
-EvaluationsStub.ExecuteAll(yTest, yPred)
+print("Accuracy simple:", EvaluationsStub.Accuracy(yTest, yPred))
+simpleAccuracy = EvaluationsStub.Accuracy(yTest, yPred)
+

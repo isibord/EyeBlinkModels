@@ -202,3 +202,30 @@ def VisualizeWeights(weightArray, outputPath):
             pixels[x,y] = int(abs(weightArray[(x*size) + y]) * 255)
 
     image.save(outputPath)
+
+def GetAllDataExceptFold(xTrain, yTrain, i, numFolds):
+    xTrainSplit = partition(xTrain, numFolds)
+    yTrainSplit = partition(yTrain, numFolds)
+
+    xTrainExceptFold = []
+    yTrainExceptFold = []
+    for num in range(numFolds):
+        if num != i:
+            xTrainExceptFold.extend(xTrainSplit[num])
+            yTrainExceptFold.extend(yTrainSplit[num])
+   
+    return (xTrainExceptFold, yTrainExceptFold)
+
+def GetDataInFold(xTrain, yTrain, i, numFolds):
+    return (partition(xTrain, numFolds)[i], partition(yTrain, numFolds)[i])
+
+
+def partition(seq, chunks):
+    """Splits the sequence into equal sized chunks and them as a list"""
+    result = []
+    for i in range(chunks):
+        chunk = []
+        for element in seq[i:len(seq):chunks]:
+            chunk.append(element)
+        result.append(chunk)
+    return result

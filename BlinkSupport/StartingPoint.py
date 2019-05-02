@@ -52,11 +52,8 @@ import SimpleBlinkNeuralNetworkLeNetMod
 model = SimpleBlinkNeuralNetworkLeNetMod.SimpleBlinkNeuralNetworkLeNet()
 lossFunction = torch.nn.MSELoss(reduction='sum')
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.95)
-#optimizer = torch.optim.ASGD(model.parameters(), lr=1e-4) #0.86
-#optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-2) #0.89 accuracy
-#optimizer = torch.optim.Rprop(model.parameters()) #0.932
 
-for i in range(800):
+for i in range(300):
     # Do the forward pass
     yTrainPredicted = model(xTrain)
 
